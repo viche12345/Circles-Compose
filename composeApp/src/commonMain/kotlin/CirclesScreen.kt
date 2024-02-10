@@ -39,6 +39,26 @@ import kotlin.math.pow
 import kotlin.math.sqrt
 
 @Composable
+fun CirclesScreen() {
+    var widthPx by rememberSaveable { mutableStateOf(0) }
+    var heightPx by rememberSaveable { mutableStateOf(0) }
+    MaterialTheme {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .onGloballyPositioned {
+                    widthPx = it.size.width
+                    heightPx = it.size.height
+                }
+        ) {
+            if (widthPx > 0 && heightPx > 0) {
+                CirclesGame(widthPx, heightPx, LocalDensity.current)
+            }
+        }
+    }
+}
+
+@Composable
 fun CirclesGame(
     widthPx: Int,
     heightPx: Int,
@@ -113,26 +133,6 @@ fun CirclesGame(
     }
 
     LevelScreen(showLevel, level)
-}
-
-@Composable
-fun CirclesScreen() {
-    var widthPx by rememberSaveable { mutableStateOf(0) }
-    var heightPx by rememberSaveable { mutableStateOf(0) }
-    MaterialTheme {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .onGloballyPositioned {
-                    widthPx = it.size.width
-                    heightPx = it.size.height
-                }
-        ) {
-            if (widthPx > 0 && heightPx > 0) {
-                CirclesGame(widthPx, heightPx, LocalDensity.current)
-            }
-        }
-    }
 }
 
 @Composable
