@@ -11,7 +11,9 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeContent
 import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -33,6 +35,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlin.math.pow
@@ -52,7 +55,7 @@ fun CirclesScreen() {
                 }
         ) {
             if (widthPx > 0 && heightPx > 0) {
-                CirclesGame(widthPx, heightPx, LocalDensity.current)
+                CirclesGame(widthPx, heightPx, WindowInsets.safeContent, LocalDensity.current)
             }
         }
     }
@@ -62,13 +65,18 @@ fun CirclesScreen() {
 fun CirclesGame(
     widthPx: Int,
     heightPx: Int,
+    insets: WindowInsets,
     density: Density,
 ) = with(density) {
     fun newCircle() = (16..32).random().dp.let { rDp ->
         val r = rDp.roundToPx()
+        val leftInset = insets.getLeft(density, LayoutDirection.Ltr)
+        val rightInset = insets.getRight(density, LayoutDirection.Ltr)
+        val topInset = insets.getTop(density)
+        val bottomInset = insets.getBottom(density)
         Circle(
-            x = (r..widthPx - r).random().toFloat(),
-            y = (r..heightPx - r).random().toFloat(),
+            x = (leftInset + r..widthPx - r - rightInset).random().toFloat(),
+            y = (topInset + r..heightPx - r - bottomInset).random().toFloat(),
             r = r.toFloat()
         )
     }
