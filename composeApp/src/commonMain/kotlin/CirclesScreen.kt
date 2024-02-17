@@ -42,7 +42,10 @@ import kotlin.math.pow
 import kotlin.math.sqrt
 
 @Composable
-fun CirclesScreen() {
+fun CirclesScreen(
+    onCorrectCircleClicked: () -> Unit = { },
+    onIncorrectCircleClicked: () -> Unit = { },
+) {
     var widthPx by rememberSaveable { mutableStateOf(0) }
     var heightPx by rememberSaveable { mutableStateOf(0) }
     MaterialTheme {
@@ -55,7 +58,14 @@ fun CirclesScreen() {
                 }
         ) {
             if (widthPx > 0 && heightPx > 0) {
-                CirclesGame(widthPx, heightPx, WindowInsets.safeContent, LocalDensity.current)
+                CirclesGame(
+                    widthPx,
+                    heightPx,
+                    WindowInsets.safeContent,
+                    LocalDensity.current,
+                    onCorrectCircleClicked,
+                    onIncorrectCircleClicked,
+                )
             }
         }
     }
@@ -67,6 +77,8 @@ fun CirclesGame(
     heightPx: Int,
     insets: WindowInsets,
     density: Density,
+    onCorrectCircleClicked: () -> Unit,
+    onIncorrectCircleClicked: () -> Unit,
 ) = with(density) {
     fun newCircle() = (16..32).random().dp.let { rDp ->
         val r = rDp.roundToPx()
@@ -118,8 +130,10 @@ fun CirclesGame(
                     onTap = { click ->
                         val c = circles.findClickedCircle(click.x, click.y)
                         if (c == circles.last()) {
+                            onCorrectCircleClicked()
                             level++
                         } else if (c != null) {
+                            onIncorrectCircleClicked()
                             gameState = GameState.LOST
                         }
                     }

@@ -9,12 +9,12 @@ fun main() = application {
         title = "Circles",
         resizable = false,
     ) {
-        App()
+        CirclesScreen()
     }
 }
 
 @Preview
 @Composable
 fun AppDesktopPreview() {
-    App()
+    CirclesScreen()
 }
