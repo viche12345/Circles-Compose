@@ -1,6 +1,7 @@
 package com.erraticduck.circles
 
 import CirclesScreen
+import OverlayScreen
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
@@ -49,4 +50,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppAndroidPreview() {
     CirclesScreen()
+}
+
+@Preview
+@Composable
+fun Preview_Overlay() {
+    OverlayScreen(text = "HELLO", showReset = true)
 }

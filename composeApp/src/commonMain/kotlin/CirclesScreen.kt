@@ -11,14 +11,22 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContent
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
+import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -37,6 +45,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import com.russhwolf.settings.ExperimentalSettingsApi
+import com.russhwolf.settings.ObservableSettings
+import com.russhwolf.settings.Settings
+import com.russhwolf.settings.coroutines.getIntFlow
+import com.russhwolf.settings.coroutines.toSuspendSettings
 import kotlinx.coroutines.delay
 import kotlin.math.pow
 import kotlin.math.sqrt
@@ -71,6 +84,7 @@ fun CirclesScreen(
     }
 }
 
+@OptIn(ExperimentalSettingsApi::class)
 @Composable
 fun CirclesGame(
     widthPx: Int,
@@ -106,17 +120,20 @@ fun CirclesGame(
         return false
     }
 
-    var gameState by remember { mutableStateOf(GameState.NONE) }
+    val settings = remember { Settings().toSuspendSettings() }
+    var gameState by remember { mutableStateOf(GameState.IDLE) }
     var level by remember { mutableIntStateOf(1) }
-    var showLevel by remember { mutableStateOf(false) }
     LaunchedEffect(level) {
-        showLevel = true
+        gameState = GameState.ADDING_CIRCLE
         delay(1000)
+        if (level > settings.getInt(SETTINGS_KEY_HIGH_SCORE, 0)) {
+            settings.putInt(SETTINGS_KEY_HIGH_SCORE, level)
+        }
         addCircle().let { added -> if (!added) gameState = GameState.WON }
-        showLevel = false
+        gameState = GameState.IDLE
     }
     fun resetGame() {
-        gameState = GameState.NONE
+        gameState = GameState.IDLE
         circles.clear()
         level = 1
     }
@@ -128,13 +145,17 @@ fun CirclesGame(
             .pointerInput(Unit) {
                 detectTapGestures(
                     onTap = { click ->
+                        if (gameState != GameState.IDLE)
+                            return@detectTapGestures
+
                         val c = circles.findClickedCircle(click.x, click.y)
                         if (c == circles.last()) {
-                            onCorrectCircleClicked()
+                            gameState = GameState.ADDING_CIRCLE
                             level++
+                            onCorrectCircleClicked()
                         } else if (c != null) {
-                            onIncorrectCircleClicked()
                             gameState = GameState.LOST
+                            onIncorrectCircleClicked()
                         }
                     }
                 )
@@ -151,10 +172,10 @@ fun CirclesGame(
 
     GameLostScreen(gameState == GameState.LOST) { resetGame() }
     if (gameState == GameState.WON) {
-        OverlayText("YOU WIN", true) { resetGame() }
+        OverlayScreen("YOU WIN", true) { resetGame() }
     }
 
-    LevelScreen(showLevel, level)
+    LevelScreen(gameState == GameState.ADDING_CIRCLE, level)
 }
 
 @Composable
@@ -170,7 +191,7 @@ fun GameLostScreen(
         ),
         exit = fadeOut(animationSpec = snap())
     ) {
-        OverlayText("YOU LOSE", true, onReset)
+        OverlayScreen("YOU LOSE", true, onReset)
     }
 }
 
@@ -192,19 +213,23 @@ fun LevelScreen(
             targetOffsetY = { it }
         )
     ) {
-        OverlayText("Level $level")
+        OverlayScreen("Level $level")
     }
 }
 
+@OptIn(ExperimentalSettingsApi::class)
 @Composable
-fun OverlayText(
+fun OverlayScreen(
     text: String,
     showReset: Boolean = false,
     onReset: () -> Unit = {},
 ) {
+    val settings = remember { Settings() as? ObservableSettings }
+    var showClearHighScoreDialog by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .pointerInput(Unit) {}
             .background(MaterialTheme.colors.background),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceEvenly
@@ -215,12 +240,64 @@ fun OverlayText(
             fontWeight = FontWeight.ExtraBold,
         )
         if (showReset) {
-            Button(
-                onClick = onReset
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Text("RESET", style = MaterialTheme.typography.button)
+                Button(
+                    onClick = onReset
+                ) {
+                    Text("RESET", modifier = Modifier.padding(8.dp), style = MaterialTheme.typography.button)
+                }
+                Spacer(Modifier.height(48.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    val highScore = remember {
+                        settings?.getIntFlow(SETTINGS_KEY_HIGH_SCORE, 0)
+                    }?.collectAsState(0)
+
+                    Text(
+                        text = "High Score: ${highScore?.value}",
+                        style = MaterialTheme.typography.subtitle1
+                    )
+                    Spacer(Modifier.width(16.dp))
+                    TextButton(
+                        onClick = { showClearHighScoreDialog = true }
+                    ) {
+                        Text("CLEAR")
+                    }
+                }
             }
         }
+    }
+
+    if (showClearHighScoreDialog) {
+        AlertDialog(
+            text = {
+                Text("Clear high score?")
+            },
+            onDismissRequest = { showClearHighScoreDialog = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        settings?.putInt(SETTINGS_KEY_HIGH_SCORE, 0)
+                        showClearHighScoreDialog = false
+                    }
+                ) {
+                    Text("CONFIRM")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showClearHighScoreDialog = false
+                    }
+                ) {
+                    Text("CANCEL")
+                }
+            }
+        )
     }
 }
 
@@ -233,5 +310,5 @@ private fun List<Circle>.findClickedCircle(x: Float, y: Float) = find {
 }
 
 private enum class GameState {
-    NONE, WON, LOST
+    IDLE, ADDING_CIRCLE, WON, LOST
 }
