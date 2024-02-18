@@ -41,6 +41,8 @@ kotlin {
             implementation(compose.material)
             implementation(compose.ui)
             implementation(compose.components.resources)
+            implementation(libs.multiplatformSettings)
+            implementation(libs.multiplatformSettings.coroutines)
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
