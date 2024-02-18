@@ -32,7 +32,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,8 +58,8 @@ fun CirclesScreen(
     onCorrectCircleClicked: () -> Unit = { },
     onIncorrectCircleClicked: () -> Unit = { },
 ) {
-    var widthPx by rememberSaveable { mutableStateOf(0) }
-    var heightPx by rememberSaveable { mutableStateOf(0) }
+    var widthPx by remember { mutableStateOf(0) }
+    var heightPx by remember { mutableStateOf(0) }
     MaterialTheme {
         Box(
             modifier = Modifier
